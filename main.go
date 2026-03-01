@@ -102,4 +102,7 @@ func main() {
 
 	fmt.Println("------------------------")
 	fmt.Printf("Done. %d updated, %d failed, %d skipped.\n", updated, failed, len(skipped))
+	if failed > 0 {
+		os.Exit(1)
+	}
 }

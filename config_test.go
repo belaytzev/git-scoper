@@ -15,7 +15,9 @@ func writeTempFile(t *testing.T, content string) string {
 	if _, err := f.WriteString(content); err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
 	return f.Name()
 }
 
@@ -115,7 +117,9 @@ func TestParseGitconfig_missingFile(t *testing.T) {
 func TestResolveConfig_localFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "gitconfig")
-	os.WriteFile(path, []byte("name=Local User\nemail=local@co.com\n"), 0644)
+	if err := os.WriteFile(path, []byte("name=Local User\nemail=local@co.com\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	cfg, err := resolveConfig(dir)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -155,7 +159,9 @@ func TestResolveConfig_localMalformedErrors(t *testing.T) {
 	t.Setenv("HOME", home)
 	// Even with a valid ~/.gitconfig, the malformed local file should cause an error
 	content := "[user]\n\tname = Should Not Use\n\temail = should@not.use\n"
-	os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(content), 0644)
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
 	_, err := resolveConfig(dir)
 	if err == nil {
 		t.Fatal("expected error for malformed local gitconfig, not silent fallthrough")

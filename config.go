@@ -62,7 +62,7 @@ func resolveConfig(baseDir string) (*Config, error) {
 // This handles only unquoted values; quoted values are not used by user.name/email in practice.
 func stripInlineComment(v string) string {
 	for i, ch := range v {
-		if ch == '#' || ch == ';' {
+		if (ch == '#' || ch == ';') && i > 0 && (v[i-1] == ' ' || v[i-1] == '\t') {
 			return v[:i]
 		}
 	}
