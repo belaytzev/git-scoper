@@ -38,13 +38,22 @@ func parseKeyValue(path string) (*Config, error) {
 }
 
 // resolveConfig tries <baseDir>/gitconfig first, then ~/.gitconfig.
-// If the local gitconfig file exists but is malformed, it returns an error immediately
-// rather than silently falling back to ~/.gitconfig.
+// If the local gitconfig file exists but is malformed or inaccessible, it returns an error
+// immediately rather than silently falling back to ~/.gitconfig.
 func resolveConfig(baseDir string) (*Config, error) {
 	local := filepath.Join(baseDir, "gitconfig")
-	if _, err := os.Stat(local); err == nil {
+	info, statErr := os.Stat(local)
+	if statErr == nil {
+		if info.IsDir() {
+			return nil, fmt.Errorf("config path %s is a directory, not a file", local)
+		}
 		// File exists — parse it; any error is fatal (don't silently fall through)
 		return parseKeyValue(local)
+	}
+	if !os.IsNotExist(statErr) {
+		// Permission denied or other non-NotExist error — fail explicitly rather than
+		// silently applying the wrong identity from ~/.gitconfig.
+		return nil, fmt.Errorf("cannot access config file %s: %w", local, statErr)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {

@@ -116,3 +116,20 @@ func TestScanDirs_emptyBase(t *testing.T) {
 		t.Errorf("expected empty results, got repos=%v skipped=%v", repos, skipped)
 	}
 }
+
+func TestScanDirs_baseDirIsRepo(t *testing.T) {
+	base := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(base, ".git"), 0755); err != nil {
+		t.Fatalf("failed to create .git: %v", err)
+	}
+	repos, skipped, err := scanDirs(base, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 1 || repos[0] != base {
+		t.Errorf("repos: got %v, want [%s]", repos, base)
+	}
+	if len(skipped) != 0 {
+		t.Errorf("skipped: got %v, want []", skipped)
+	}
+}

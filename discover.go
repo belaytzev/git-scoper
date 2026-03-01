@@ -12,6 +12,13 @@ import (
 //   - skipped: direct children of baseDir with no .git and no repo-containing subdirs
 func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, err error) {
 	baseClean := filepath.Clean(baseDir)
+
+	// If baseDir itself is a git repo, return it directly — no child scanning needed.
+	if _, statErr := os.Stat(filepath.Join(baseClean, ".git")); statErr == nil {
+		repos = append(repos, baseClean)
+		return
+	}
+
 	baseParts := len(strings.Split(baseClean, string(os.PathSeparator)))
 
 	// Track which direct children contain at least one repo (so we don't skip them)
