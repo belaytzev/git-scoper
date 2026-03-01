@@ -33,8 +33,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if _, err := os.Stat(baseDir); err != nil {
+	if info, err := os.Stat(baseDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: cannot access directory %s\n", baseDir)
+		os.Exit(1)
+	} else if !info.IsDir() {
+		fmt.Fprintf(os.Stderr, "Error: %s is not a directory\n", baseDir)
 		os.Exit(1)
 	}
 
@@ -56,40 +59,47 @@ func main() {
 
 	results := runAll(repos, cfg, *workers)
 
-	// Sort results by path for deterministic output
-	sort.Slice(results, func(i, j int) bool { return results[i].Path < results[j].Path })
-
-	updated, failed := 0, 0
+	type entry struct {
+		label string
+		path  string
+		err   error
+	}
+	var entries []entry
 	for _, r := range results {
 		rel, relErr := filepath.Rel(baseDir, r.Path)
 		if relErr != nil {
 			rel = r.Path
 		}
 		if r.Err != nil {
-			fmt.Printf("Failed: %s (%v)\n", rel, r.Err)
-			failed++
+			entries = append(entries, entry{"Failed", rel, r.Err})
 		} else {
-			fmt.Printf("Updated: %s\n", rel)
-			updated++
+			entries = append(entries, entry{"Updated", rel, nil})
 		}
 	}
-
-	sort.Strings(skipped)
 	for _, s := range skipped {
 		rel, relErr := filepath.Rel(baseDir, s)
 		if relErr != nil {
 			rel = s
 		}
-		fmt.Printf("Skipped: %s\n", rel)
+		entries = append(entries, entry{"Skipped", rel, nil})
+	}
+
+	sort.Slice(entries, func(i, j int) bool { return entries[i].path < entries[j].path })
+
+	updated, failed := 0, 0
+	for _, e := range entries {
+		switch e.label {
+		case "Updated":
+			fmt.Printf("Updated: %s\n", e.path)
+			updated++
+		case "Failed":
+			fmt.Printf("Failed: %s (%v)\n", e.path, e.err)
+			failed++
+		case "Skipped":
+			fmt.Printf("Skipped: %s\n", e.path)
+		}
 	}
 
 	fmt.Println("------------------------")
-	msg := fmt.Sprintf("Done. %d updated", updated)
-	if failed > 0 {
-		msg += fmt.Sprintf(", %d failed", failed)
-	}
-	if len(skipped) > 0 {
-		msg += fmt.Sprintf(", %d skipped", len(skipped))
-	}
-	fmt.Println(msg)
+	fmt.Printf("Done. %d updated, %d failed, %d skipped.\n", updated, failed, len(skipped))
 }

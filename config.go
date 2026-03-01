@@ -68,8 +68,14 @@ func parseGitconfig(path string) (*Config, error) {
 	for _, line := range strings.Split(string(data), "\n") {
 		trimmed := strings.TrimSpace(line)
 		if strings.HasPrefix(trimmed, "[") {
-			// Match [user] tolerating extra whitespace (e.g. "[ user ]"), but not subsections like [user "work"]
-			inner := strings.TrimSpace(strings.Trim(trimmed, "[]"))
+			// Extract name between '[' and ']', ignoring inline comments after ']'
+			// Handles "[ user ]", "[user] # comment", but not subsections like [user "work"]
+			closing := strings.Index(trimmed, "]")
+			if closing == -1 {
+				inUser = false
+				continue
+			}
+			inner := strings.TrimSpace(trimmed[1:closing])
 			inUser = strings.EqualFold(inner, "user") && !strings.Contains(inner, "\"")
 			continue
 		}
