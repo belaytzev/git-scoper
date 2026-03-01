@@ -276,6 +276,10 @@ git commit -m "feat: add key=value config file reader with tests"
 
 ## Task 3: ~/.gitconfig INI reader
 
+- [x] Add TestParseGitconfig tests to config_test.go
+- [x] Implement parseGitconfig in config.go
+- [x] Run tests and verify they pass
+
 **Files:**
 - Modify: `config.go`
 - Modify: `config_test.go`

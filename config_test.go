@@ -66,3 +66,33 @@ func TestParseKeyValue_extraKeys(t *testing.T) {
 		t.Errorf("unexpected cfg: %+v", cfg)
 	}
 }
+
+func TestParseGitconfig_valid(t *testing.T) {
+	content := "[core]\n\tautocrlf = false\n[user]\n\tname = Jane Doe\n\temail = jane@co.com\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane Doe" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane Doe")
+	}
+	if cfg.Email != "jane@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "jane@co.com")
+	}
+}
+
+func TestParseGitconfig_missingUserSection(t *testing.T) {
+	path := writeTempFile(t, "[core]\n\tautocrlf = false\n")
+	_, err := parseGitconfig(path)
+	if err == nil {
+		t.Fatal("expected error when [user] section is missing")
+	}
+}
+
+func TestParseGitconfig_missingFile(t *testing.T) {
+	_, err := parseGitconfig(filepath.Join(t.TempDir(), "nonexistent"))
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
