@@ -68,11 +68,19 @@ func TestIntegration_fullPipeline(t *testing.T) {
 	for _, repo := range repos {
 		out, err := exec.Command("git", "-C", repo, "config", "--local", "user.name").Output()
 		if err != nil {
-			t.Errorf("verify %s: %v", repo, err)
+			t.Errorf("verify %s user.name: %v", repo, err)
 			continue
 		}
 		if strings.TrimSpace(string(out)) != "Test User" {
 			t.Errorf("repo %s: user.name = %q", repo, strings.TrimSpace(string(out)))
+		}
+		out, err = exec.Command("git", "-C", repo, "config", "--local", "user.email").Output()
+		if err != nil {
+			t.Errorf("verify %s user.email: %v", repo, err)
+			continue
+		}
+		if strings.TrimSpace(string(out)) != "test@example.com" {
+			t.Errorf("repo %s: user.email = %q", repo, strings.TrimSpace(string(out)))
 		}
 	}
 }

@@ -86,7 +86,7 @@ func main() {
 
 	sort.Slice(entries, func(i, j int) bool { return entries[i].path < entries[j].path })
 
-	updated, failed := 0, 0
+	updated, failed, skippedCount := 0, 0, 0
 	for _, e := range entries {
 		switch e.label {
 		case "Updated":
@@ -97,11 +97,12 @@ func main() {
 			failed++
 		case "Skipped":
 			fmt.Printf("Skipped: %s\n", e.path)
+			skippedCount++
 		}
 	}
 
 	fmt.Println("------------------------")
-	fmt.Printf("Done. %d updated, %d failed, %d skipped.\n", updated, failed, len(skipped))
+	fmt.Printf("Done. %d updated, %d failed, %d skipped.\n", updated, failed, skippedCount)
 	if failed > 0 {
 		os.Exit(1)
 	}

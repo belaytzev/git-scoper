@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -114,6 +115,32 @@ func TestScanDirs_emptyBase(t *testing.T) {
 	}
 	if len(repos) != 0 || len(skipped) != 0 {
 		t.Errorf("expected empty results, got repos=%v skipped=%v", repos, skipped)
+	}
+}
+
+func TestScanDirs_unreadableDirSkipped(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Chmod(0000) does not reliably prevent directory reads on Windows")
+	}
+	if os.Getuid() == 0 {
+		t.Skip("running as root; permission restrictions do not apply")
+	}
+	base := t.TempDir()
+	unreadable := filepath.Join(base, "locked")
+	if err := os.MkdirAll(unreadable, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(unreadable, 0000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(unreadable, 0755) })
+
+	repos, _, err := scanDirs(base, 2)
+	if err != nil {
+		t.Errorf("expected no error for unreadable directory, got: %v", err)
+	}
+	if len(repos) != 0 {
+		t.Errorf("expected no repos, got: %v", repos)
 	}
 }
 

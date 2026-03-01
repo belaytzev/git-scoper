@@ -3,6 +3,7 @@ package main
 import (
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -25,6 +26,25 @@ func TestRunAll_updatesAllRepos(t *testing.T) {
 	for _, r := range results {
 		if r.Err != nil {
 			t.Errorf("repo %s failed: %v", r.Path, r.Err)
+		}
+	}
+	// Verify config was actually written, not just that no error was returned
+	for _, repo := range []string{repoA, repoB} {
+		out, err := exec.Command("git", "-C", repo, "config", "--local", "user.name").Output()
+		if err != nil {
+			t.Errorf("read user.name from %s: %v", repo, err)
+			continue
+		}
+		if strings.TrimSpace(string(out)) != "Jane Doe" {
+			t.Errorf("repo %s: user.name = %q, want %q", repo, strings.TrimSpace(string(out)), "Jane Doe")
+		}
+		out, err = exec.Command("git", "-C", repo, "config", "--local", "user.email").Output()
+		if err != nil {
+			t.Errorf("read user.email from %s: %v", repo, err)
+			continue
+		}
+		if strings.TrimSpace(string(out)) != "jane@co.com" {
+			t.Errorf("repo %s: user.email = %q, want %q", repo, strings.TrimSpace(string(out)), "jane@co.com")
 		}
 	}
 }

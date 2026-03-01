@@ -127,6 +127,9 @@ func TestResolveConfig_localFile(t *testing.T) {
 	if cfg.Name != "Local User" {
 		t.Errorf("got name %q, want %q", cfg.Name, "Local User")
 	}
+	if cfg.Email != "local@co.com" {
+		t.Errorf("got email %q, want %q", cfg.Email, "local@co.com")
+	}
 }
 
 func TestResolveConfig_fallbackToGitconfig(t *testing.T) {
@@ -174,5 +177,35 @@ func TestResolveConfig_noConfigAnywhere(t *testing.T) {
 	_, err := resolveConfig(dir)
 	if err == nil {
 		t.Fatal("expected error when no config found anywhere")
+	}
+}
+
+func TestParseKeyValue_inlineComments(t *testing.T) {
+	path := writeTempFile(t, "name=Jane Doe  # work account\nemail=jane@co.com ; note\n")
+	cfg, err := parseKeyValue(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane Doe" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane Doe")
+	}
+	if cfg.Email != "jane@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "jane@co.com")
+	}
+}
+
+func TestParseGitconfig_subsectionIgnored(t *testing.T) {
+	// [user "work"] subsection must not be read; only plain [user] applies
+	content := "[user \"work\"]\n\tname = Work User\n\temail = work@co.com\n[user]\n\tname = Main User\n\temail = main@co.com\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Main User" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Main User")
+	}
+	if cfg.Email != "main@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "main@co.com")
 	}
 }

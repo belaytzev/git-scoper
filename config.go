@@ -26,9 +26,9 @@ func parseKeyValue(path string) (*Config, error) {
 		}
 		switch strings.TrimSpace(k) {
 		case "name":
-			cfg.Name = strings.TrimSpace(v)
+			cfg.Name = strings.TrimSpace(stripInlineComment(v))
 		case "email":
-			cfg.Email = strings.TrimSpace(v)
+			cfg.Email = strings.TrimSpace(stripInlineComment(v))
 		}
 	}
 	if cfg.Name == "" || cfg.Email == "" {
