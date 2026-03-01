@@ -478,6 +478,10 @@ git commit -m "feat: add config resolution with local-file and ~/.gitconfig fall
 
 ## Task 5: Directory scanner (find repos and skipped dirs)
 
+- [x] Create discover_test.go with tests for scanDirs
+- [x] Create discover.go with scanDirs function
+- [x] Run tests and verify they pass
+
 **Files:**
 - Create: `discover.go`
 - Create: `discover_test.go`

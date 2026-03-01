@@ -1,0 +1,111 @@
+package main
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func makeRepo(t *testing.T, parent, name string) string {
+	t.Helper()
+	dir := filepath.Join(parent, name)
+	os.MkdirAll(filepath.Join(dir, ".git"), 0755)
+	return dir
+}
+
+func makeDir(t *testing.T, parent, name string) string {
+	t.Helper()
+	dir := filepath.Join(parent, name)
+	os.MkdirAll(dir, 0755)
+	return dir
+}
+
+func TestScanDirs_singleRepo(t *testing.T) {
+	base := t.TempDir()
+	makeRepo(t, base, "ProjectA")
+	repos, skipped, err := scanDirs(base, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 1 {
+		t.Errorf("repos: got %d, want 1: %v", len(repos), repos)
+	}
+	if len(skipped) != 0 {
+		t.Errorf("skipped: got %d, want 0: %v", len(skipped), skipped)
+	}
+}
+
+func TestScanDirs_mixedChildren(t *testing.T) {
+	base := t.TempDir()
+	makeRepo(t, base, "ProjectA")
+	makeDir(t, base, "not-a-repo")
+	repos, skipped, err := scanDirs(base, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 1 {
+		t.Errorf("repos: got %d, want 1: %v", len(repos), repos)
+	}
+	if len(skipped) != 1 {
+		t.Errorf("skipped: got %d, want 1: %v", len(skipped), skipped)
+	}
+}
+
+func TestScanDirs_nestedRepo(t *testing.T) {
+	// tools/ is a plain dir at depth 1; tools/ProjectB is a repo at depth 2
+	base := t.TempDir()
+	tools := makeDir(t, base, "tools")
+	makeRepo(t, tools, "ProjectB")
+	repos, skipped, err := scanDirs(base, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 1 {
+		t.Errorf("repos: got %d, want 1: %v", len(repos), repos)
+	}
+	// tools/ itself is a direct child with no .git but has children with repos,
+	// so it should NOT appear as skipped (we continue into it)
+	if len(skipped) != 0 {
+		t.Errorf("skipped: got %d, want 0: %v", len(skipped), skipped)
+	}
+}
+
+func TestScanDirs_depthLimit(t *testing.T) {
+	// Repo at depth 3 should not be found when maxDepth=2
+	base := t.TempDir()
+	a := makeDir(t, base, "a")
+	b := makeDir(t, a, "b")
+	makeRepo(t, b, "TooDeep")
+	repos, _, err := scanDirs(base, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 0 {
+		t.Errorf("expected no repos at depth 3, got: %v", repos)
+	}
+}
+
+func TestScanDirs_repoNotDescendedInto(t *testing.T) {
+	// A repo containing a nested .git should only appear once
+	base := t.TempDir()
+	outer := makeRepo(t, base, "outer")
+	makeRepo(t, outer, "inner") // nested — should be ignored
+	repos, _, err := scanDirs(base, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 1 {
+		t.Errorf("expected 1 repo (outer), got %d: %v", len(repos), repos)
+	}
+}
+
+func TestScanDirs_emptyBase(t *testing.T) {
+	base := t.TempDir()
+	repos, skipped, err := scanDirs(base, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(repos) != 0 || len(skipped) != 0 {
+		t.Errorf("expected empty results, got repos=%v skipped=%v", repos, skipped)
+	}
+}
