@@ -1,0 +1,2 @@
+# git-scoper
+GIt Scooper
