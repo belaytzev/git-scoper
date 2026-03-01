@@ -1255,8 +1255,8 @@ git commit -m "chore: verify acceptance criteria (all green)"
 
 ## Task 10: [Final] Documentation & cleanup
 
-- [ ] Update README.md with full usage documentation
-- [ ] Move plan file to docs/plans/completed/
+- [x] Update README.md with full usage documentation
+- [x] Move plan file to docs/plans/completed/
 
 **Files:**
 - Modify: `README.md`
