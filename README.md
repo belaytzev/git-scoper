@@ -63,7 +63,7 @@ Done. 2 updated, 1 failed, 1 skipped.
 
 | Code | Meaning |
 |------|---------|
-| `0` | Success (including when some repos report `Failed:`) |
-| `1` | Fatal error: inaccessible directory, no config found, or scan error |
+| `0` | All repos updated successfully |
+| `1` | Any failure: inaccessible directory, no config found, scan error, or one or more repos reported `Failed:` |
 
-Note: `Failed:` repos do not affect the exit code. Check individual lines for per-repo errors.
+Note: Check individual `Failed:` lines for per-repo error details.

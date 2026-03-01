@@ -34,7 +34,7 @@ func main() {
 	}
 
 	if info, err := os.Stat(baseDir); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: cannot access directory %s\n", baseDir)
+		fmt.Fprintf(os.Stderr, "Error: cannot access directory %s: %v\n", baseDir, err)
 		os.Exit(1)
 	} else if !info.IsDir() {
 		fmt.Fprintf(os.Stderr, "Error: %s is not a directory\n", baseDir)

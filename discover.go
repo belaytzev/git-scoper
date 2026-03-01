@@ -19,8 +19,6 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 		return
 	}
 
-	baseParts := len(strings.Split(baseClean, string(os.PathSeparator)))
-
 	// Track which direct children contain at least one repo (so we don't skip them)
 	directChildHasRepo := map[string]bool{}
 
@@ -36,8 +34,8 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 			return nil
 		}
 
-		parts := len(strings.Split(filepath.Clean(path), string(os.PathSeparator)))
-		depth := parts - baseParts
+		rel, _ := filepath.Rel(baseClean, path)
+		depth := len(strings.Split(rel, string(os.PathSeparator)))
 
 		_, statErr := os.Stat(filepath.Join(path, ".git"))
 		isRepo := statErr == nil
@@ -45,7 +43,6 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 		if isRepo {
 			repos = append(repos, path)
 			// Mark the direct child ancestor as having a repo
-			rel, _ := filepath.Rel(baseClean, path)
 			topSegment := strings.SplitN(rel, string(os.PathSeparator), 2)[0]
 			directChildHasRepo[filepath.Join(baseClean, topSegment)] = true
 			return filepath.SkipDir
