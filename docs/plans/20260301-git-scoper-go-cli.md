@@ -840,6 +840,10 @@ git commit -m "feat: add git config applicator with tests"
 
 ## Task 7: Parallel worker pool
 
+- [x] Create run_test.go with tests for runAll
+- [x] Create run.go with Result struct and runAll function
+- [x] Run tests and verify they pass
+
 **Files:**
 - Create: `run.go`
 - Create: `run_test.go`
