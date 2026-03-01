@@ -21,10 +21,16 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 
 	// Track which direct children contain at least one repo (so we don't skip them)
 	directChildHasRepo := map[string]bool{}
+	// Track direct children that could not be read — they are silently ignored, not "Skipped"
+	unreadableDirs := map[string]bool{}
 
 	// First pass: collect all repos
 	err = filepath.WalkDir(baseClean, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
+			rel, relErr := filepath.Rel(baseClean, path)
+			if relErr == nil && rel != "." && !strings.Contains(rel, string(os.PathSeparator)) {
+				unreadableDirs[path] = true
+			}
 			return nil // skip unreadable directories
 		}
 		if !d.IsDir() {
@@ -69,7 +75,7 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 			continue
 		}
 		childPath := filepath.Join(baseClean, e.Name())
-		if directChildHasRepo[childPath] {
+		if directChildHasRepo[childPath] || unreadableDirs[childPath] {
 			continue
 		}
 		// Check if it's itself a repo (already in repos list)

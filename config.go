@@ -70,9 +70,10 @@ func resolveConfig(baseDir string) (*Config, error) {
 // Git allows inline comments after the value: name = Jane  # comment
 // This handles only unquoted values; quoted values are not used by user.name/email in practice.
 func stripInlineComment(v string) string {
-	for i, ch := range v {
-		if (ch == '#' || ch == ';') && i > 0 && (v[i-1] == ' ' || v[i-1] == '\t') {
-			return v[:i]
+	runes := []rune(v)
+	for i, ch := range runes {
+		if (ch == '#' || ch == ';') && i > 0 && (runes[i-1] == ' ' || runes[i-1] == '\t') {
+			return string(runes[:i])
 		}
 	}
 	return v

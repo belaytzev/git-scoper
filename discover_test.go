@@ -135,12 +135,15 @@ func TestScanDirs_unreadableDirSkipped(t *testing.T) {
 	}
 	t.Cleanup(func() { os.Chmod(unreadable, 0755) })
 
-	repos, _, err := scanDirs(base, 2)
+	repos, skipped, err := scanDirs(base, 2)
 	if err != nil {
 		t.Errorf("expected no error for unreadable directory, got: %v", err)
 	}
 	if len(repos) != 0 {
 		t.Errorf("expected no repos, got: %v", repos)
+	}
+	if len(skipped) != 0 {
+		t.Errorf("unreadable dir must be silently ignored, not appear in skipped: %v", skipped)
 	}
 }
 
