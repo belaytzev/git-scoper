@@ -1000,6 +1000,11 @@ git commit -m "feat: add parallel worker pool for applying git config"
 
 ## Task 8: Wire everything in `main.go` + integration test
 
+- [x] Create main_test.go with integration test
+- [x] Replace main.go with full pipeline implementation
+- [x] Run full test suite and verify all tests pass
+- [x] Build binary and smoke test
+
 **Files:**
 - Modify: `main.go`
 - Create: `main_test.go`

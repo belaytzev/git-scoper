@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 func main() {
@@ -23,7 +24,52 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = depth
-	_ = workers
-	fmt.Println("git-scoper: not yet implemented")
+	cfg, err := resolveConfig(baseDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Config: name=%s, email=%s\n", cfg.Name, cfg.Email)
+	fmt.Printf("Scanning: %s (depth %d)\n", baseDir, *depth)
+	fmt.Println("------------------------")
+
+	repos, skipped, err := scanDirs(baseDir, *depth)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error scanning: %v\n", err)
+		os.Exit(1)
+	}
+
+	results := runAll(repos, cfg, *workers)
+
+	// Sort results by path for deterministic output
+	sort.Slice(results, func(i, j int) bool { return results[i].Path < results[j].Path })
+
+	updated, failed := 0, 0
+	for _, r := range results {
+		rel, _ := filepath.Rel(baseDir, r.Path)
+		if r.Err != nil {
+			fmt.Printf("Failed: %s (%v)\n", rel, r.Err)
+			failed++
+		} else {
+			fmt.Printf("Updated: %s\n", rel)
+			updated++
+		}
+	}
+
+	sort.Strings(skipped)
+	for _, s := range skipped {
+		rel, _ := filepath.Rel(baseDir, s)
+		fmt.Printf("Skipped: %s\n", rel)
+	}
+
+	fmt.Println("------------------------")
+	msg := fmt.Sprintf("Done. %d updated", updated)
+	if failed > 0 {
+		msg += fmt.Sprintf(", %d failed", failed)
+	}
+	if len(skipped) > 0 {
+		msg += fmt.Sprintf(", %d skipped", len(skipped))
+	}
+	fmt.Println(msg)
 }
