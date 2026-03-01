@@ -13,11 +13,25 @@ func main() {
 	workers := flag.Int("workers", 4, "parallel workers")
 	flag.Parse()
 
+	if *depth < 1 {
+		fmt.Fprintf(os.Stderr, "Error: --depth must be at least 1\n")
+		os.Exit(1)
+	}
+	if *workers < 1 {
+		fmt.Fprintf(os.Stderr, "Error: --workers must be at least 1\n")
+		os.Exit(1)
+	}
+
 	baseDir := "."
 	if flag.NArg() > 0 {
 		baseDir = flag.Arg(0)
 	}
-	baseDir, _ = filepath.Abs(baseDir)
+	var absErr error
+	baseDir, absErr = filepath.Abs(baseDir)
+	if absErr != nil {
+		fmt.Fprintf(os.Stderr, "Error: cannot resolve directory: %v\n", absErr)
+		os.Exit(1)
+	}
 
 	if _, err := os.Stat(baseDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: cannot access directory %s\n", baseDir)
@@ -47,7 +61,10 @@ func main() {
 
 	updated, failed := 0, 0
 	for _, r := range results {
-		rel, _ := filepath.Rel(baseDir, r.Path)
+		rel, relErr := filepath.Rel(baseDir, r.Path)
+		if relErr != nil {
+			rel = r.Path
+		}
 		if r.Err != nil {
 			fmt.Printf("Failed: %s (%v)\n", rel, r.Err)
 			failed++
@@ -59,7 +76,10 @@ func main() {
 
 	sort.Strings(skipped)
 	for _, s := range skipped {
-		rel, _ := filepath.Rel(baseDir, s)
+		rel, relErr := filepath.Rel(baseDir, s)
+		if relErr != nil {
+			rel = s
+		}
 		fmt.Printf("Skipped: %s\n", rel)
 	}
 

@@ -15,6 +15,9 @@ func runAll(repos []string, cfg *Config, workers int) []Result {
 	if len(repos) == 0 {
 		return nil
 	}
+	if workers <= 0 {
+		workers = 1
+	}
 
 	jobs := make(chan string, len(repos))
 	for _, r := range repos {

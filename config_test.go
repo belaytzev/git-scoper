@@ -110,13 +110,45 @@ func TestResolveConfig_localFile(t *testing.T) {
 	}
 }
 
+func TestResolveConfig_fallbackToGitconfig(t *testing.T) {
+	dir := t.TempDir() // no local gitconfig file
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	content := "[core]\n\tautocrlf = false\n[user]\n\tname = Fallback User\n\temail = fallback@co.com\n"
+	if err := os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := resolveConfig(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Fallback User" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Fallback User")
+	}
+	if cfg.Email != "fallback@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "fallback@co.com")
+	}
+}
+
+func TestResolveConfig_localMalformedErrors(t *testing.T) {
+	dir := t.TempDir()
+	// Local file exists but is missing email — should error, not fall through
+	if err := os.WriteFile(filepath.Join(dir, "gitconfig"), []byte("name=Only Name\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	// Even with a valid ~/.gitconfig, the malformed local file should cause an error
+	content := "[user]\n\tname = Should Not Use\n\temail = should@not.use\n"
+	os.WriteFile(filepath.Join(home, ".gitconfig"), []byte(content), 0644)
+	_, err := resolveConfig(dir)
+	if err == nil {
+		t.Fatal("expected error for malformed local gitconfig, not silent fallthrough")
+	}
+}
+
 func TestResolveConfig_noConfigAnywhere(t *testing.T) {
 	dir := t.TempDir() // no gitconfig, home will have no .gitconfig either
-	// We can't mock home dir easily, so just test the local-file branch failing
-	// by verifying resolveConfig returns an error when base has no gitconfig
-	// and we use a known-bad home. We test this indirectly: if local file
-	// doesn't exist and ~/.gitconfig is missing, we get an error.
-	// Use an env-var trick to redirect home:
 	t.Setenv("HOME", t.TempDir()) // temp home with no .gitconfig
 	_, err := resolveConfig(dir)
 	if err == nil {

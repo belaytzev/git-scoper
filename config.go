@@ -38,10 +38,13 @@ func parseKeyValue(path string) (*Config, error) {
 }
 
 // resolveConfig tries <baseDir>/gitconfig first, then ~/.gitconfig.
+// If the local gitconfig file exists but is malformed, it returns an error immediately
+// rather than silently falling back to ~/.gitconfig.
 func resolveConfig(baseDir string) (*Config, error) {
 	local := filepath.Join(baseDir, "gitconfig")
-	if cfg, err := parseKeyValue(local); err == nil {
-		return cfg, nil
+	if _, err := os.Stat(local); err == nil {
+		// File exists — parse it; any error is fatal (don't silently fall through)
+		return parseKeyValue(local)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -49,7 +52,7 @@ func resolveConfig(baseDir string) (*Config, error) {
 	}
 	cfg, err := parseGitconfig(filepath.Join(home, ".gitconfig"))
 	if err != nil {
-		return nil, fmt.Errorf("no usable config found in %s or ~/.gitconfig", baseDir)
+		return nil, fmt.Errorf("no usable config found in %s or ~/.gitconfig: %w", baseDir, err)
 	}
 	return cfg, nil
 }
@@ -64,12 +67,10 @@ func parseGitconfig(path string) (*Config, error) {
 	inUser := false
 	for _, line := range strings.Split(string(data), "\n") {
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "[user]" {
-			inUser = true
-			continue
-		}
 		if strings.HasPrefix(trimmed, "[") {
-			inUser = false
+			// Match [user] tolerating extra whitespace (e.g. "[ user ]"), but not subsections like [user "work"]
+			inner := strings.TrimSpace(strings.Trim(trimmed, "[]"))
+			inUser = strings.EqualFold(inner, "user") && !strings.Contains(inner, "\"")
 			continue
 		}
 		if !inUser {

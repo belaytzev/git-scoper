@@ -54,12 +54,36 @@ func TestRunAll_singleWorker(t *testing.T) {
 	var repos []string
 	for _, name := range []string{"R1", "R2", "R3"} {
 		r := filepath.Join(base, name)
-		exec.Command("git", "init", r).Run()
+		if out, err := exec.Command("git", "init", r).CombinedOutput(); err != nil {
+			t.Fatalf("git init: %v\n%s", err, out)
+		}
 		repos = append(repos, r)
 	}
 	cfg := &Config{Name: "Jane Doe", Email: "jane@co.com"}
 	results := runAll(repos, cfg, 1) // single worker
 	if len(results) != 3 {
 		t.Errorf("expected 3 results, got %d", len(results))
+	}
+	for _, r := range results {
+		if r.Err != nil {
+			t.Errorf("repo %s failed: %v", r.Path, r.Err)
+		}
+	}
+}
+
+func TestRunAll_zeroWorkers(t *testing.T) {
+	base := t.TempDir()
+	repo := filepath.Join(base, "R")
+	if out, err := exec.Command("git", "init", repo).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	cfg := &Config{Name: "Jane Doe", Email: "jane@co.com"}
+	// workers=0 should be clamped to 1 by runAll's guard
+	results := runAll([]string{repo}, cfg, 0)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].Err != nil {
+		t.Errorf("unexpected error: %v", results[0].Err)
 	}
 }

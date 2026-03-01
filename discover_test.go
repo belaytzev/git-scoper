@@ -3,20 +3,25 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func makeRepo(t *testing.T, parent, name string) string {
 	t.Helper()
 	dir := filepath.Join(parent, name)
-	os.MkdirAll(filepath.Join(dir, ".git"), 0755)
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0755); err != nil {
+		t.Fatalf("makeRepo: %v", err)
+	}
 	return dir
 }
 
 func makeDir(t *testing.T, parent, name string) string {
 	t.Helper()
 	dir := filepath.Join(parent, name)
-	os.MkdirAll(dir, 0755)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("makeDir: %v", err)
+	}
 	return dir
 }
 
@@ -48,6 +53,8 @@ func TestScanDirs_mixedChildren(t *testing.T) {
 	}
 	if len(skipped) != 1 {
 		t.Errorf("skipped: got %d, want 1: %v", len(skipped), skipped)
+	} else if !strings.HasSuffix(skipped[0], "not-a-repo") {
+		t.Errorf("unexpected skipped dir: %s", skipped[0])
 	}
 }
 

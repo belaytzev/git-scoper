@@ -12,15 +12,25 @@ func TestIntegration_fullPipeline(t *testing.T) {
 	base := t.TempDir()
 
 	// Create config file
-	os.WriteFile(filepath.Join(base, "gitconfig"), []byte("name=Test User\nemail=test@example.com\n"), 0644)
+	if err := os.WriteFile(filepath.Join(base, "gitconfig"), []byte("name=Test User\nemail=test@example.com\n"), 0644); err != nil {
+		t.Fatalf("write gitconfig: %v", err)
+	}
 
 	// Create two repos and one plain dir
 	repoA := filepath.Join(base, "RepoA")
 	repoB := filepath.Join(base, "sub", "RepoB")
-	exec.Command("git", "init", repoA).Run()
-	os.MkdirAll(filepath.Join(base, "sub"), 0755)
-	exec.Command("git", "init", repoB).Run()
-	os.MkdirAll(filepath.Join(base, "not-a-repo"), 0755)
+	if out, err := exec.Command("git", "init", repoA).CombinedOutput(); err != nil {
+		t.Fatalf("git init repoA: %v\n%s", err, out)
+	}
+	if err := os.MkdirAll(filepath.Join(base, "sub"), 0755); err != nil {
+		t.Fatalf("mkdir sub: %v", err)
+	}
+	if out, err := exec.Command("git", "init", repoB).CombinedOutput(); err != nil {
+		t.Fatalf("git init repoB: %v\n%s", err, out)
+	}
+	if err := os.MkdirAll(filepath.Join(base, "not-a-repo"), 0755); err != nil {
+		t.Fatalf("mkdir not-a-repo: %v", err)
+	}
 
 	// Resolve config
 	cfg, err := resolveConfig(base)

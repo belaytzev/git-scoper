@@ -3,6 +3,7 @@ package main
 import (
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -27,7 +28,7 @@ func TestApplyConfig_success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("git config read failed: %v", err)
 	}
-	got := string(out[:len(out)-1]) // trim newline
+	got := strings.TrimSpace(string(out))
 	if got != "Jane Doe" {
 		t.Errorf("user.name: got %q, want %q", got, "Jane Doe")
 	}
@@ -36,7 +37,7 @@ func TestApplyConfig_success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("git config read failed: %v", err)
 	}
-	got = string(out[:len(out)-1])
+	got = strings.TrimSpace(string(out))
 	if got != "jane@co.com" {
 		t.Errorf("user.email: got %q, want %q", got, "jane@co.com")
 	}
