@@ -147,6 +147,40 @@ func TestScanDirs_unreadableDirSkipped(t *testing.T) {
 	}
 }
 
+func TestScanDirs_unreadableSubdirNotSkipped(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Chmod(0000) does not reliably prevent directory reads on Windows")
+	}
+	if os.Getuid() == 0 {
+		t.Skip("running as root; permission restrictions do not apply")
+	}
+	base := t.TempDir()
+	child := makeDir(t, base, "tools")
+	unreadable := filepath.Join(child, "locked")
+	if err := os.MkdirAll(unreadable, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(unreadable, 0000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(unreadable, 0755) })
+
+	// maxDepth=3: walk descends into tools/, tries to enter tools/locked,
+	// gets a permission error (rather than hitting the depth guard first).
+	repos, skipped, err := scanDirs(base, 3)
+	if err != nil {
+		t.Errorf("expected no error for unreadable subdirectory, got: %v", err)
+	}
+	if len(repos) != 0 {
+		t.Errorf("expected no repos, got: %v", repos)
+	}
+	// tools/ has an unreadable subdir — we couldn't fully scan it,
+	// so it must NOT appear as Skipped (silently ignored instead).
+	if len(skipped) != 0 {
+		t.Errorf("direct child with unreadable subdir must be silently ignored, not skipped: %v", skipped)
+	}
+}
+
 func TestScanDirs_baseDirIsRepo(t *testing.T) {
 	base := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(base, ".git"), 0755); err != nil {

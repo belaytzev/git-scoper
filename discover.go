@@ -28,8 +28,9 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 	err = filepath.WalkDir(baseClean, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			rel, relErr := filepath.Rel(baseClean, path)
-			if relErr == nil && rel != "." && !strings.Contains(rel, string(os.PathSeparator)) {
-				unreadableDirs[path] = true
+			if relErr == nil && rel != "." {
+				topSegment := strings.SplitN(rel, string(os.PathSeparator), 2)[0]
+				unreadableDirs[filepath.Join(baseClean, topSegment)] = true
 			}
 			return nil // skip unreadable directories
 		}
