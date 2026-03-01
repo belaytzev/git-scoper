@@ -57,6 +57,18 @@ func resolveConfig(baseDir string) (*Config, error) {
 	return cfg, nil
 }
 
+// stripInlineComment removes a trailing # or ; comment from a git INI value.
+// Git allows inline comments after the value: name = Jane  # comment
+// This handles only unquoted values; quoted values are not used by user.name/email in practice.
+func stripInlineComment(v string) string {
+	for i, ch := range v {
+		if ch == '#' || ch == ';' {
+			return v[:i]
+		}
+	}
+	return v
+}
+
 // parseGitconfig reads the [user] section from a standard ~/.gitconfig INI file.
 func parseGitconfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
@@ -88,9 +100,9 @@ func parseGitconfig(path string) (*Config, error) {
 		}
 		switch strings.TrimSpace(k) {
 		case "name":
-			cfg.Name = strings.TrimSpace(v)
+			cfg.Name = strings.TrimSpace(stripInlineComment(v))
 		case "email":
-			cfg.Email = strings.TrimSpace(v)
+			cfg.Email = strings.TrimSpace(stripInlineComment(v))
 		}
 	}
 	if cfg.Name == "" || cfg.Email == "" {
