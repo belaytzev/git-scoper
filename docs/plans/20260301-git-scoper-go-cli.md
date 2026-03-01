@@ -55,6 +55,10 @@ git-scoper/
 
 ## Task 1: Project scaffolding
 
+- [x] Initialize Go module (go.mod)
+- [x] Create main.go skeleton with flag parsing and directory validation
+- [x] Verify compilation passes
+
 **Files:**
 - Create: `go.mod`
 - Create: `main.go`
