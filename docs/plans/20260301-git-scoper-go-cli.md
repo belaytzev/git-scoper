@@ -1200,10 +1200,10 @@ git commit -m "feat: wire full pipeline in main — config, scan, apply, output"
 
 ## Task 9: Verify acceptance criteria
 
-- [ ] Run go build and go vet with no errors
-- [ ] Run full test suite and verify all pass
-- [ ] Smoke test binary against a real directory
-- [ ] Verify missing-config error path exits with code 1
+- [x] Run go build and go vet with no errors
+- [x] Run full test suite and verify all pass
+- [x] Smoke test binary against a real directory
+- [x] Verify missing-config error path exits with code 1
 
 **Step 1: Build check**
 
