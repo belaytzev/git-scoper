@@ -96,3 +96,30 @@ func TestParseGitconfig_missingFile(t *testing.T) {
 		t.Fatal("expected error for missing file")
 	}
 }
+
+func TestResolveConfig_localFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "gitconfig")
+	os.WriteFile(path, []byte("name=Local User\nemail=local@co.com\n"), 0644)
+	cfg, err := resolveConfig(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Local User" {
+		t.Errorf("got name %q, want %q", cfg.Name, "Local User")
+	}
+}
+
+func TestResolveConfig_noConfigAnywhere(t *testing.T) {
+	dir := t.TempDir() // no gitconfig, home will have no .gitconfig either
+	// We can't mock home dir easily, so just test the local-file branch failing
+	// by verifying resolveConfig returns an error when base has no gitconfig
+	// and we use a known-bad home. We test this indirectly: if local file
+	// doesn't exist and ~/.gitconfig is missing, we get an error.
+	// Use an env-var trick to redirect home:
+	t.Setenv("HOME", t.TempDir()) // temp home with no .gitconfig
+	_, err := resolveConfig(dir)
+	if err == nil {
+		t.Fatal("expected error when no config found anywhere")
+	}
+}

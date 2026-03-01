@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -32,6 +33,23 @@ func parseKeyValue(path string) (*Config, error) {
 	}
 	if cfg.Name == "" || cfg.Email == "" {
 		return nil, fmt.Errorf("%s must contain both name= and email=", path)
+	}
+	return cfg, nil
+}
+
+// resolveConfig tries <baseDir>/gitconfig first, then ~/.gitconfig.
+func resolveConfig(baseDir string) (*Config, error) {
+	local := filepath.Join(baseDir, "gitconfig")
+	if cfg, err := parseKeyValue(local); err == nil {
+		return cfg, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	cfg, err := parseGitconfig(filepath.Join(home, ".gitconfig"))
+	if err != nil {
+		return nil, fmt.Errorf("no usable config found in %s or ~/.gitconfig", baseDir)
 	}
 	return cfg, nil
 }

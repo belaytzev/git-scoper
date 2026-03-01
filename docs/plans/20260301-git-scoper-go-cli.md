@@ -389,6 +389,10 @@ git commit -m "feat: add ~/.gitconfig INI reader with tests"
 
 ## Task 4: Config resolution (base-dir first, then ~/.gitconfig)
 
+- [x] Add TestResolveConfig tests to config_test.go
+- [x] Implement resolveConfig in config.go
+- [x] Run tests and verify they pass
+
 **Files:**
 - Modify: `config.go`
 - Modify: `config_test.go`
