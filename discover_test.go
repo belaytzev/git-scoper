@@ -133,7 +133,7 @@ func TestScanDirs_unreadableDirSkipped(t *testing.T) {
 	if err := os.Chmod(unreadable, 0000); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.Chmod(unreadable, 0755) })
+	t.Cleanup(func() { _ = os.Chmod(unreadable, 0755) })
 
 	repos, skipped, err := scanDirs(base, 2)
 	if err != nil {

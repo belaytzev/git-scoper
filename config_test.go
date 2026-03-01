@@ -194,6 +194,76 @@ func TestParseKeyValue_inlineComments(t *testing.T) {
 	}
 }
 
+func TestParseGitconfig_quotedValues(t *testing.T) {
+	// git writes quoted values when the name/email contains special characters
+	content := "[user]\n\tname = \"Jane O'Brien\"\n\temail = \"jane@co.com\"\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane O'Brien" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane O'Brien")
+	}
+	if cfg.Email != "jane@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "jane@co.com")
+	}
+}
+
+func TestParseGitconfig_quotedValueWithHash(t *testing.T) {
+	// A # inside a quoted value must not be treated as an inline comment
+	content := "[user]\n\tname = \"Jane # Doe\"\n\temail = \"jane@co.com\"\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane # Doe" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane # Doe")
+	}
+}
+
+func TestParseGitconfig_quotedValueEscapedQuote(t *testing.T) {
+	content := "[user]\n\tname = \"Jane \\\"J\\\" Doe\"\n\temail = \"jane@co.com\"\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != `Jane "J" Doe` {
+		t.Errorf("Name: got %q, want %q", cfg.Name, `Jane "J" Doe`)
+	}
+}
+
+func TestParseGitconfig_quotedValueWithTrailingComment(t *testing.T) {
+	// Quoted value followed by an inline comment — quotes must be stripped, comment ignored.
+	content := "[user]\n\tname = \"Jane Doe\" # work account\n\temail = \"jane@co.com\" ; note\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane Doe" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane Doe")
+	}
+	if cfg.Email != "jane@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "jane@co.com")
+	}
+}
+
+func TestParseGitconfig_quotedValueEscapeSequences(t *testing.T) {
+	// Standard git-config escape sequences inside quoted values.
+	content := "[user]\n\tname = \"Jane\\\\Doe\"\n\temail = \"jane@co.com\"\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != `Jane\Doe` {
+		t.Errorf("Name: got %q, want %q", cfg.Name, `Jane\Doe`)
+	}
+}
+
 func TestParseGitconfig_subsectionIgnored(t *testing.T) {
 	// [user "work"] subsection must not be read; only plain [user] applies
 	content := "[user \"work\"]\n\tname = Work User\n\temail = work@co.com\n[user]\n\tname = Main User\n\temail = main@co.com\n"

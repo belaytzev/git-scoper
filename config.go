@@ -16,7 +16,7 @@ type Config struct {
 func parseKeyValue(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("config file not found at %s: %w", path, err)
+		return nil, fmt.Errorf("cannot read config file %s: %w", path, err)
 	}
 	cfg := &Config{}
 	for _, line := range strings.Split(string(data), "\n") {
@@ -66,9 +66,8 @@ func resolveConfig(baseDir string) (*Config, error) {
 	return cfg, nil
 }
 
-// stripInlineComment removes a trailing # or ; comment from a git INI value.
+// stripInlineComment removes a trailing # or ; comment from an unquoted git INI value.
 // Git allows inline comments after the value: name = Jane  # comment
-// This handles only unquoted values; quoted values are not used by user.name/email in practice.
 func stripInlineComment(v string) string {
 	runes := []rune(v)
 	for i, ch := range runes {
@@ -77,6 +76,52 @@ func stripInlineComment(v string) string {
 		}
 	}
 	return v
+}
+
+// unquoteGitValue normalises a git INI value from the right-hand side of a key=value
+// line.  If the trimmed value starts with a double-quote, the quoted string is parsed
+// up to the first unescaped closing quote (per git-config spec), ignoring any trailing
+// inline comment after the closing quote.  Standard git-config escape sequences
+// (\", \\, \n, \t, \b) are expanded.  Otherwise inline comments are stripped.
+func unquoteGitValue(v string) string {
+	trimmed := strings.TrimSpace(v)
+	if len(trimmed) == 0 || trimmed[0] != '"' {
+		return strings.TrimSpace(stripInlineComment(v))
+	}
+	// Scan for the closing quote, expanding escape sequences as we go.
+	var buf strings.Builder
+	i := 1 // skip opening quote
+	for i < len(trimmed) {
+		ch := trimmed[i]
+		if ch == '"' {
+			// Closing quote found; any trailing content (e.g. inline comment) is ignored.
+			return buf.String()
+		}
+		if ch == '\\' && i+1 < len(trimmed) {
+			i++
+			switch trimmed[i] {
+			case '"':
+				buf.WriteByte('"')
+			case '\\':
+				buf.WriteByte('\\')
+			case 'n':
+				buf.WriteByte('\n')
+			case 't':
+				buf.WriteByte('\t')
+			case 'b':
+				buf.WriteByte('\b')
+			default:
+				// Unknown escape: preserve the backslash and the following character.
+				buf.WriteByte('\\')
+				buf.WriteByte(trimmed[i])
+			}
+		} else {
+			buf.WriteByte(ch)
+		}
+		i++
+	}
+	// No closing quote found (malformed); return whatever was accumulated.
+	return buf.String()
 }
 
 // parseGitconfig reads the [user] section from a standard ~/.gitconfig INI file.
@@ -110,9 +155,9 @@ func parseGitconfig(path string) (*Config, error) {
 		}
 		switch strings.TrimSpace(k) {
 		case "name":
-			cfg.Name = strings.TrimSpace(stripInlineComment(v))
+			cfg.Name = unquoteGitValue(v)
 		case "email":
-			cfg.Email = strings.TrimSpace(stripInlineComment(v))
+			cfg.Email = unquoteGitValue(v)
 		}
 	}
 	if cfg.Name == "" || cfg.Email == "" {
