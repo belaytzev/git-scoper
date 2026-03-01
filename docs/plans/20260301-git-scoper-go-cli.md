@@ -124,6 +124,10 @@ git commit -m "feat: scaffold go module and main entry point"
 
 ## Task 2: Key=value config reader
 
+- [x] Create config_test.go with tests for parseKeyValue
+- [x] Create config.go with Config struct and parseKeyValue function
+- [x] Run tests and verify they pass
+
 **Files:**
 - Create: `config.go`
 - Create: `config_test.go`
