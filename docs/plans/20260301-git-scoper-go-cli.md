@@ -1200,6 +1200,11 @@ git commit -m "feat: wire full pipeline in main — config, scan, apply, output"
 
 ## Task 9: Verify acceptance criteria
 
+- [ ] Run go build and go vet with no errors
+- [ ] Run full test suite and verify all pass
+- [ ] Smoke test binary against a real directory
+- [ ] Verify missing-config error path exits with code 1
+
 **Step 1: Build check**
 
 ```bash
@@ -1249,6 +1254,9 @@ git commit -m "chore: verify acceptance criteria (all green)"
 ---
 
 ## Task 10: [Final] Documentation & cleanup
+
+- [ ] Update README.md with full usage documentation
+- [ ] Move plan file to docs/plans/completed/
 
 **Files:**
 - Modify: `README.md`
