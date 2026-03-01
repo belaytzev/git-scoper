@@ -716,6 +716,10 @@ git commit -m "feat: add directory scanner with repo detection and depth limitin
 
 ## Task 6: Git config applicator
 
+- [x] Create apply_test.go with tests for applyConfig
+- [x] Create apply.go with applyConfig function
+- [x] Run tests and verify they pass
+
 **Files:**
 - Create: `apply.go`
 - Create: `apply_test.go`
