@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>git-scoper — bulk git identity manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #000000;
+      --surface:   #0a0a0a;
+      --border:    #1e1e1e;
+      --border-hi: #333;
+      --text:      #d4d4d4;
+      --muted:     #555;
+      --green:     #39ff14;
+      --amber:     #ffb000;
+      --red:       #ff4040;
+      --blue:      #4db8ff;
+      --white:     #f0f0f0;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ─── layout ─── */
+    .wrap {
+      max-width: 72ch;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ─── scanline overlay ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0,0,0,0.06) 2px,
+        rgba(0,0,0,0.06) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* ─── header ─── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 0 1.5rem;
+    }
+
+    header .wrap {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .site-title {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+
+    .gh-link {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: color 0.15s;
+    }
+    .gh-link:hover { color: var(--green); }
+    .gh-link::before { content: '↗ '; }
+
+    /* ─── hero ─── */
+    .hero {
+      padding: 5rem 0 4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-name {
+      font-size: clamp(2.4rem, 8vw, 4.2rem);
+      font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 1.2rem;
+    }
+
+    .hero-name span {
+      color: var(--green);
+    }
+
+    .hero-tagline {
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 400;
+      max-width: 50ch;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--green);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--green);
+      padding: 0.55rem 1.2rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .hero-cta:hover {
+      background: var(--green);
+      color: #000;
+    }
+
+    /* ─── terminal block ─── */
+    .terminal {
+      margin: 3.5rem 0;
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #111;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      padding: 0.65rem 1rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot-r { background: #ff5f56; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #27c93f; }
+
+    .terminal-label {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+    }
+
+    .terminal-body {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem 1.5rem;
+      overflow-x: auto;
+    }
+
+    .terminal-body pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      white-space: pre;
+    }
+
+    .prompt   { color: var(--muted); }
+    .cmd      { color: var(--white); }
+    .out-info { color: var(--text); }
+    .out-sep  { color: #333; }
+    .out-ok   { color: var(--green); }
+    .out-fail { color: var(--red); }
+    .out-skip { color: var(--muted); }
+    .out-done { color: var(--text); }
+    .out-num  { color: var(--amber); font-weight: 700; }
+
+    /* typewriter */
+    .tw-line {
+      display: block;
+      overflow: hidden;
+      white-space: pre;
+      opacity: 0;
+    }
+
+    /* ─── sections ─── */
+    .section {
+      padding: 3.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 1.8rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 1.2rem;
+      letter-spacing: -0.01em;
+    }
+
+    p {
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+
+    /* ─── install block ─── */
+    .install-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      margin-top: 1.5rem;
+    }
+
+    .install-cmd {
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border-hi);
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 0.35rem 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+      letter-spacing: 0.08em;
+      transition: border-color 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { border-color: var(--green); color: var(--green); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* ─── bullets ─── */
+    .bullets {
+      list-style: none;
+      margin-top: 1rem;
+    }
+    .bullets li {
+      padding: 0.45rem 0;
+      padding-left: 1.4em;
+      position: relative;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    .bullets li:first-child { border-top: 1px solid var(--border); }
+    .bullets li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: var(--green);
+    }
+
+    /* ─── flags table ─── */
+    .flag-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+      font-size: 13px;
+    }
+    .flag-table thead th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.5rem 1rem 0.5rem 0;
+      border-bottom: 1px solid var(--border-hi);
+    }
+    .flag-table thead th:last-child { padding-right: 0; }
+    .flag-table tbody td {
+      padding: 0.7rem 1rem 0.7rem 0;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .flag-table tbody td:last-child { padding-right: 0; }
+    .flag-table code {
+      color: var(--amber);
+      font-size: 13px;
+    }
+    .flag-table .default {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* ─── config blocks ─── */
+    .config-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 600px) {
+      .config-pair { grid-template-columns: 1fr; }
+    }
+
+    .config-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1rem 1.2rem;
+    }
+
+    .config-card-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-card pre {
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .config-card .cfg-key  { color: var(--blue); }
+    .config-card .cfg-val  { color: var(--green); }
+    .config-card .cfg-sec  { color: var(--amber); }
+    .config-card .cfg-mute { color: var(--muted); }
+
+    .config-note {
+      margin-top: 1rem;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .config-note strong { color: var(--text); font-weight: 600; }
+
+    /* ─── footer ─── */
+    footer {
+      padding: 2.5rem 0;
+    }
+
+    footer .wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-copy {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .claude-badge {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+    .claude-badge .glyph { color: var(--amber); }
+
+    /* ─── animations ─── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-name, .hero-tagline, .hero-cta {
+      animation: fadeIn 0.5s ease both;
+    }
+    .hero-tagline { animation-delay: 0.1s; }
+    .hero-cta     { animation-delay: 0.2s; }
+  </style>
+</head>
+<body>
+
+<!-- ── header ── -->
+<header>
+  <div class="wrap">
+    <span class="site-title">git-scoper</span>
+    <a class="gh-link" href="https://github.com/belaytzev/git-scoper" target="_blank" rel="noopener">github.com/belaytzev/git-scoper</a>
+  </div>
+</header>
+
+<!-- ── hero ── -->
+<section class="hero">
+  <div class="wrap">
+    <h1 class="hero-name">git<span>-scoper</span></h1>
+    <p class="hero-tagline">
+      Bulk-apply <code style="color:var(--amber)">user.name</code> and
+      <code style="color:var(--amber)">user.email</code> to every git repository
+      found under a directory — in parallel, in one command.
+    </p>
+    <a class="hero-cta" href="https://github.com/belaytzev/git-scoper" target="_blank" rel="noopener">
+      View on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- ── terminal demo ── -->
+<div class="wrap">
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="dot dot-r"></span>
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span class="terminal-label">example</span>
+    </div>
+    <div class="terminal-body">
+      <pre id="term-pre" aria-label="Terminal output example"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ── install ── -->
+<section class="section">
+  <div class="wrap">
+    <p class="section-label">01 — Install</p>
+    <h2>Get started in seconds</h2>
+    <p>Requires Go 1.21+ and <code style="color:var(--amber)">git</code> on your <code style="color:var(--amber)">PATH</code>.</p>
+    <div class="install-block">
+      <span class="install-cmd" id="install-cmd">go install github.com/belaytzev/git-scoper@latest</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyInstall()">copy</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── what it does ── -->
+<section class="section">
+  <div class="wrap">
+    <p class="section-label">02 — What it does</p>
+    <h2>One command. Every repo.</h2>
+    <ul class="bullets">
+      <li>Scans a base directory recursively up to a configurable depth</li>
+      <li>Detects all git repositories, including nested ones</li>
+      <li>Applies <code style="color:var(--amber)">user.name</code> and <code style="color:var(--amber)">user.email</code> via <code style="color:var(--amber)">git config --local</code></li>
+      <li>Runs workers in parallel — fast even across hundreds of repos</li>
+      <li>Reports each path as <span style="color:var(--green)">Updated</span>, <span style="color:var(--red)">Failed</span>, or <span style="color:var(--muted)">Skipped</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ── flags ── -->
+<section class="section">
+  <div class="wrap">
+    <p class="section-label">03 — Flags</p>
+    <h2>Usage</h2>
+    <p style="color:var(--muted); font-size:13px; margin-bottom:0.5rem;">
+      <code style="color:var(--white)">git-scoper [flags] [base-dir]</code>
+    </p>
+    <p style="font-size:12px; color:var(--muted)">
+      If <code style="color:var(--amber)">base-dir</code> is omitted, the current directory is used.
+      If <code style="color:var(--amber)">base-dir</code> is itself a git repo, config is applied directly and no subdirectory scanning occurs.
+    </p>
+    <table class="flag-table">
+      <thead>
+        <tr>
+          <th>Flag</th>
+          <th>Default</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>--depth</code></td>
+          <td><span class="default">2</span></td>
+          <td>Max directory depth to scan relative to <code style="color:var(--amber)">base-dir</code>.<br>
+            <span style="color:var(--muted);font-size:12px">depth 1 = immediate children only</span></td>
+        </tr>
+        <tr>
+          <td><code>--workers</code></td>
+          <td><span class="default">4</span></td>
+          <td>Number of parallel workers.<br>
+            <span style="color:var(--muted);font-size:12px">Must be ≥ 1</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── config ── -->
+<section class="section">
+  <div class="wrap">
+    <p class="section-label">04 — Config</p>
+    <h2>Identity resolution</h2>
+    <p>Config is read in order — the first source found wins.</p>
+    <div class="config-pair">
+      <div class="config-card">
+        <div class="config-card-label">1 · &lt;base-dir&gt;/gitconfig</div>
+        <pre><span class="cfg-key">name</span><span class="cfg-mute">=</span><span class="cfg-val">Jane Doe</span>
+<span class="cfg-key">email</span><span class="cfg-mute">=</span><span class="cfg-val">jane@acme.com</span></pre>
+      </div>
+      <div class="config-card">
+        <div class="config-card-label">2 · ~/.gitconfig (fallback)</div>
+        <pre><span class="cfg-sec">[user]</span>
+  <span class="cfg-key">name</span>  <span class="cfg-mute">=</span> <span class="cfg-val">Jane Doe</span>
+  <span class="cfg-key">email</span> <span class="cfg-mute">=</span> <span class="cfg-val">jane@example.com</span></pre>
+      </div>
+    </div>
+    <p class="config-note">
+      If <strong>&lt;base-dir&gt;/gitconfig</strong> exists but is missing
+      <code style="color:var(--amber)">name=</code> or <code style="color:var(--amber)">email=</code>,
+      the tool exits with an error rather than silently falling back.
+    </p>
+  </div>
+</section>
+
+<!-- ── footer ── -->
+<footer>
+  <div class="wrap">
+    <span class="footer-copy">© 2025 belaytzev — MIT License</span>
+    <span class="claude-badge">
+      <span class="glyph">◆</span>
+      Made with Claude Code
+    </span>
+  </div>
+</footer>
+
+<script>
+  /* ── typewriter animation ── */
+  (function () {
+    const lines = [
+      { text: '$ git-scoper /Work/Acme',           cls: ['prompt', 'cmd']                },
+      { text: 'Config: name=Jane Doe, email=jane@acme.com', cls: ['out-info'] },
+      { text: 'Scanning: /Work/Acme (depth 2)',     cls: ['out-info']                     },
+      { text: '------------------------',           cls: ['out-sep']                      },
+      { text: 'Updated: ProjectAlpha',              cls: ['out-ok']                       },
+      { text: 'Updated: tools/ProjectBeta',         cls: ['out-ok']                       },
+      { text: 'Failed:  tools/ReadOnly (exit status 128)', cls: ['out-fail']              },
+      { text: 'Skipped: docs',                      cls: ['out-skip']                     },
+      { text: '------------------------',           cls: ['out-sep']                      },
+      { text: 'Done. 2 updated, 1 failed, 1 skipped.', cls: ['out-done']                 },
+    ];
+
+    const pre = document.getElementById('term-pre');
+    let delay = 400;
+
+    lines.forEach((line, i) => {
+      const span = document.createElement('span');
+      span.className = 'tw-line';
+
+      // first line: prompt + command split
+      if (i === 0) {
+        const p = document.createElement('span');
+        p.className = 'prompt';
+        p.textContent = '$ ';
+        const c = document.createElement('span');
+        c.className = 'cmd';
+        c.textContent = 'git-scoper /Work/Acme';
+        span.appendChild(p);
+        span.appendChild(c);
+      } else {
+        span.className = 'tw-line ' + line.cls[0];
+        span.textContent = line.text;
+      }
+
+      pre.appendChild(span);
+
+      const thisDelay = delay;
+      setTimeout(() => {
+        span.style.animation = 'fadeIn 0.25s ease both';
+        span.style.opacity = '1';
+      }, thisDelay);
+
+      delay += i === 0 ? 600 : i < 4 ? 180 : 220;
+    });
+  })();
+
+  /* ── copy to clipboard ── */
+  function copyInstall() {
+    const cmd = document.getElementById('install-cmd').textContent;
+    const btn = document.getElementById('copy-btn');
+    navigator.clipboard.writeText(cmd).then(() => {
+      btn.textContent = 'copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
