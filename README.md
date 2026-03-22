@@ -4,10 +4,20 @@ Applies git `user.name` and `user.email` to every git repository found in a base
 
 ## Requirements
 
-- Go 1.21+
 - `git` must be installed and available on `PATH`
 
 ## Install
+
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap belaytzev/tap
+brew install git-scoper
+```
+
+### From source
+
+Requires Go 1.21+:
 
 ```bash
 go install github.com/belaytzev/git-scoper@latest
