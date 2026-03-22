@@ -6,17 +6,17 @@
   <title>git-scoper — bulk git identity manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
       --bg:        #000000;
-      --surface:   #0a0a0a;
+      --surface:   #111111;
       --border:    #1e1e1e;
       --border-hi: #333;
       --text:      #d4d4d4;
-      --muted:     #555;
+      --muted:     #888;
       --green:     #39ff14;
       --amber:     #ffb000;
       --red:       #ff4040;
@@ -24,15 +24,40 @@
       --white:     #f0f0f0;
     }
 
-    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
+    }
 
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.7;
       min-height: 100vh;
+    }
+
+    /* ─── skip link ─── */
+    .skip-link {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      background: var(--green);
+      color: #000;
+      padding: 0.5rem 1rem;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 200;
+      text-decoration: none;
+    }
+    .skip-link:focus {
+      left: 0;
+    }
+
+    /* ─── focus styles ─── */
+    :focus-visible {
+      outline: 2px solid var(--green);
+      outline-offset: 2px;
     }
 
     /* ─── layout ─── */
@@ -69,6 +94,7 @@
       align-items: baseline;
       justify-content: space-between;
       gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .site-title {
@@ -77,6 +103,22 @@
       color: var(--muted);
       letter-spacing: 0.1em;
     }
+
+    nav {
+      display: flex;
+      align-items: baseline;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      transition: color 0.15s;
+    }
+    .nav-link:hover { color: var(--green); }
 
     .gh-link {
       font-size: 12px;
@@ -126,13 +168,24 @@
       font-weight: 600;
       letter-spacing: 0.08em;
       border: 1px solid var(--green);
-      padding: 0.55rem 1.2rem;
+      padding: 0.65rem 1.4rem;
+      min-height: 44px;
       transition: background 0.15s, color 0.15s;
     }
     .hero-cta:hover {
       background: var(--green);
       color: #000;
     }
+
+    /* ─── utility classes ─── */
+    .hl-code { color: var(--amber); }
+    .hl-white { color: var(--white); }
+    .hl-ok { color: var(--green); }
+    .hl-fail { color: var(--red); }
+    .hl-muted { color: var(--muted); }
+    .text-usage { color: var(--muted); font-size: 13px; margin-bottom: 0.5rem; }
+    .text-note { font-size: 12px; color: var(--muted); }
+    .text-flag-note { color: var(--muted); font-size: 12px; }
 
     /* ─── terminal block ─── */
     .terminal {
@@ -153,6 +206,7 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
+      cursor: default;
     }
     .dot-r { background: #ff5f56; }
     .dot-y { background: #ffbd2e; }
@@ -168,7 +222,7 @@
     .terminal-body {
       background: var(--surface);
       border: 1px solid var(--border);
-      padding: 1.5rem 1.5rem;
+      padding: 1.5rem;
       overflow-x: auto;
     }
 
@@ -235,6 +289,11 @@
       gap: 1rem;
       padding: 1rem 1.2rem;
       margin-top: 1.5rem;
+      flex-wrap: wrap;
+      transition: border-color 0.15s;
+    }
+    .install-block:hover {
+      border-color: var(--border-hi);
     }
 
     .install-cmd {
@@ -250,7 +309,9 @@
       color: var(--muted);
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      padding: 0.35rem 0.8rem;
+      padding: 0.5rem 1rem;
+      min-height: 44px;
+      min-width: 44px;
       cursor: pointer;
       white-space: nowrap;
       letter-spacing: 0.08em;
@@ -281,6 +342,11 @@
     }
 
     /* ─── flags table ─── */
+    .flag-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     .flag-table {
       width: 100%;
       border-collapse: collapse;
@@ -320,9 +386,6 @@
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
       margin-top: 1.5rem;
-    }
-    @media (max-width: 600px) {
-      .config-pair { grid-template-columns: 1fr; }
     }
 
     .config-card {
@@ -398,28 +461,89 @@
     }
     .hero-tagline { animation-delay: 0.1s; }
     .hero-cta     { animation-delay: 0.2s; }
+
+    /* ─── reduced motion ─── */
+    @media (prefers-reduced-motion: reduce) {
+      .hero-name, .hero-tagline, .hero-cta {
+        animation: none;
+      }
+      .tw-line {
+        opacity: 1 !important;
+        animation: none !important;
+      }
+    }
+
+    /* ─── responsive ─── */
+    @media (max-width: 600px) {
+      .wrap { padding: 0 1rem; }
+      .config-pair { grid-template-columns: 1fr; }
+      nav { gap: 0.8rem; }
+
+      .flag-table thead { display: none; }
+      .flag-table,
+      .flag-table tbody,
+      .flag-table tr,
+      .flag-table td {
+        display: block;
+        width: 100%;
+      }
+      .flag-table tr {
+        padding: 0.8rem 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .flag-table td {
+        padding: 0.2rem 0;
+        border-bottom: none;
+      }
+      .flag-table td:first-child {
+        font-weight: 700;
+      }
+      .flag-table td:first-child::before {
+        content: 'Flag: ';
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+      }
+      .flag-table td:nth-child(2)::before {
+        content: 'Default: ';
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+      }
+    }
   </style>
 </head>
 <body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
 
 <!-- ── header ── -->
 <header>
   <div class="wrap">
     <span class="site-title">git-scoper</span>
-    <a class="gh-link" href="https://github.com/belaytzev/git-scoper" target="_blank" rel="noopener">github.com/belaytzev/git-scoper</a>
+    <nav aria-label="Page sections">
+      <a class="nav-link" href="#install">Install</a>
+      <a class="nav-link" href="#features">Features</a>
+      <a class="nav-link" href="#flags">Flags</a>
+      <a class="nav-link" href="#config">Config</a>
+      <a class="gh-link" href="https://github.com/belaytzev/git-scoper" target="_blank" rel="noopener" aria-label="View on GitHub (opens in new tab)">GitHub</a>
+    </nav>
   </div>
 </header>
 
 <!-- ── hero ── -->
+<main id="main-content">
 <section class="hero">
   <div class="wrap">
     <h1 class="hero-name">git<span>-scoper</span></h1>
     <p class="hero-tagline">
-      Bulk-apply <code style="color:var(--amber)">user.name</code> and
-      <code style="color:var(--amber)">user.email</code> to every git repository
+      Bulk-apply <code class="hl-code">user.name</code> and
+      <code class="hl-code">user.email</code> to every git repository
       found under a directory — in parallel, in one command.
     </p>
-    <a class="hero-cta" href="https://github.com/belaytzev/git-scoper" target="_blank" rel="noopener">
+    <a class="hero-cta" href="https://github.com/belaytzev/git-scoper" target="_blank" rel="noopener" aria-label="View on GitHub (opens in new tab)">
       View on GitHub
     </a>
   </div>
@@ -427,87 +551,101 @@
 
 <!-- ── terminal demo ── -->
 <div class="wrap">
-  <div class="terminal">
+  <div class="terminal" id="terminal-demo">
     <div class="terminal-bar">
-      <span class="dot dot-r"></span>
-      <span class="dot dot-y"></span>
-      <span class="dot dot-g"></span>
+      <span class="dot dot-r" aria-hidden="true"></span>
+      <span class="dot dot-y" aria-hidden="true"></span>
+      <span class="dot dot-g" aria-hidden="true"></span>
       <span class="terminal-label">example</span>
     </div>
     <div class="terminal-body">
-      <pre id="term-pre" aria-label="Terminal output example"></pre>
+      <pre id="term-pre" role="img" aria-label="Terminal output showing git-scoper scanning repositories and reporting Updated, Failed, and Skipped results"></pre>
     </div>
   </div>
 </div>
 
 <!-- ── install ── -->
-<section class="section">
+<section class="section" id="install">
   <div class="wrap">
     <p class="section-label">01 — Install</p>
     <h2>Get started in seconds</h2>
-    <p>Requires Go 1.21+ and <code style="color:var(--amber)">git</code> on your <code style="color:var(--amber)">PATH</code>.</p>
+    <p>Requires Go 1.21+ and <code class="hl-code">git</code> on your <code class="hl-code">PATH</code>.</p>
     <div class="install-block">
       <span class="install-cmd" id="install-cmd">go install github.com/belaytzev/git-scoper@latest</span>
-      <button class="copy-btn" id="copy-btn" onclick="copyInstall()">copy</button>
+      <button class="copy-btn" id="copy-btn" aria-label="Copy install command to clipboard">copy</button>
     </div>
   </div>
 </section>
 
 <!-- ── what it does ── -->
-<section class="section">
+<section class="section" id="features">
   <div class="wrap">
     <p class="section-label">02 — What it does</p>
     <h2>One command. Every repo.</h2>
+    <p>Managing git identities across dozens of repositories is tedious and error-prone. git-scoper fixes that.</p>
     <ul class="bullets">
       <li>Scans a base directory recursively up to a configurable depth</li>
       <li>Detects all git repositories, including nested ones</li>
-      <li>Applies <code style="color:var(--amber)">user.name</code> and <code style="color:var(--amber)">user.email</code> via <code style="color:var(--amber)">git config --local</code></li>
+      <li>Applies <code class="hl-code">user.name</code> and <code class="hl-code">user.email</code> via <code class="hl-code">git config --local</code></li>
       <li>Runs workers in parallel — fast even across hundreds of repos</li>
-      <li>Reports each path as <span style="color:var(--green)">Updated</span>, <span style="color:var(--red)">Failed</span>, or <span style="color:var(--muted)">Skipped</span></li>
+      <li>Reports each path as <span class="hl-ok">Updated</span>, <span class="hl-fail">Failed</span>, or <span class="hl-muted">Skipped</span></li>
     </ul>
   </div>
 </section>
 
 <!-- ── flags ── -->
-<section class="section">
+<section class="section" id="flags">
   <div class="wrap">
     <p class="section-label">03 — Flags</p>
     <h2>Usage</h2>
-    <p style="color:var(--muted); font-size:13px; margin-bottom:0.5rem;">
-      <code style="color:var(--white)">git-scoper [flags] [base-dir]</code>
+    <p class="text-usage">
+      <code class="hl-white">git-scoper [flags] [base-dir]</code>
     </p>
-    <p style="font-size:12px; color:var(--muted)">
-      If <code style="color:var(--amber)">base-dir</code> is omitted, the current directory is used.
-      If <code style="color:var(--amber)">base-dir</code> is itself a git repo, config is applied directly and no subdirectory scanning occurs.
+    <p class="text-note">
+      If <code class="hl-code">base-dir</code> is omitted, the current directory is used.
+      If <code class="hl-code">base-dir</code> is itself a git repo, config is applied directly and no subdirectory scanning occurs.
     </p>
-    <table class="flag-table">
-      <thead>
-        <tr>
-          <th>Flag</th>
-          <th>Default</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><code>--depth</code></td>
-          <td><span class="default">2</span></td>
-          <td>Max directory depth to scan relative to <code style="color:var(--amber)">base-dir</code>.<br>
-            <span style="color:var(--muted);font-size:12px">depth 1 = immediate children only</span></td>
-        </tr>
-        <tr>
-          <td><code>--workers</code></td>
-          <td><span class="default">4</span></td>
-          <td>Number of parallel workers.<br>
-            <span style="color:var(--muted);font-size:12px">Must be ≥ 1</span></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="flag-table-wrap">
+      <table class="flag-table">
+        <thead>
+          <tr>
+            <th>Flag</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>--depth</code></td>
+            <td><span class="default">2</span></td>
+            <td>Max directory depth to scan relative to <code class="hl-code">base-dir</code>.<br>
+              <span class="text-flag-note">depth 1 = immediate children only</span></td>
+          </tr>
+          <tr>
+            <td><code>--workers</code></td>
+            <td><span class="default">4</span></td>
+            <td>Number of parallel workers.<br>
+              <span class="text-flag-note">Must be ≥ 1</span></td>
+          </tr>
+          <tr>
+            <td><code>--dry-run</code></td>
+            <td><span class="default">false</span></td>
+            <td>Show what would be changed without applying.<br>
+              <span class="text-flag-note">Preview mode — no git config is modified</span></td>
+          </tr>
+          <tr>
+            <td><code>--version</code></td>
+            <td></td>
+            <td>Print version and exit.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
 <!-- ── config ── -->
-<section class="section">
+<section class="section" id="config">
   <div class="wrap">
     <p class="section-label">04 — Config</p>
     <h2>Identity resolution</h2>
@@ -527,17 +665,18 @@
     </div>
     <p class="config-note">
       If <strong>&lt;base-dir&gt;/gitconfig</strong> exists but is missing
-      <code style="color:var(--amber)">name=</code> or <code style="color:var(--amber)">email=</code>,
+      <code class="hl-code">name=</code> or <code class="hl-code">email=</code>,
       the tool exits with an error rather than silently falling back.
     </p>
   </div>
 </section>
+</main>
 
 <!-- ── footer ── -->
 <footer>
   <div class="wrap">
     <span class="footer-copy">© 2026 belaytzev — MIT License</span>
-    <span class="claude-badge">
+    <span class="claude-badge" aria-hidden="true">
       <span class="glyph">◆</span>
       Made with Claude Code
     </span>
@@ -547,7 +686,8 @@
 <script>
   /* ── typewriter animation ── */
   (function () {
-    const lines = [
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var lines = [
       { text: '$ git-scoper /Work/Acme',           cls: ['prompt', 'cmd']                },
       { text: 'Config: name=Jane Doe, email=jane@acme.com', cls: ['out-info'] },
       { text: 'Scanning: /Work/Acme (depth 2)',     cls: ['out-info']                     },
@@ -560,19 +700,18 @@
       { text: 'Done. 2 updated, 1 failed, 1 skipped.', cls: ['out-done']                 },
     ];
 
-    const pre = document.getElementById('term-pre');
-    let delay = 400;
+    var pre = document.getElementById('term-pre');
+    var spans = [];
 
-    lines.forEach((line, i) => {
-      const span = document.createElement('span');
+    lines.forEach(function (line, i) {
+      var span = document.createElement('span');
       span.className = 'tw-line';
 
-      // first line: prompt + command split
       if (i === 0) {
-        const p = document.createElement('span');
+        var p = document.createElement('span');
         p.className = 'prompt';
         p.textContent = '$ ';
-        const c = document.createElement('span');
+        var c = document.createElement('span');
         c.className = 'cmd';
         c.textContent = 'git-scoper /Work/Acme';
         span.appendChild(p);
@@ -583,30 +722,80 @@
       }
 
       pre.appendChild(span);
-
-      const thisDelay = delay;
-      setTimeout(() => {
-        span.style.animation = 'fadeIn 0.25s ease both';
-        span.style.opacity = '1';
-      }, thisDelay);
-
-      delay += i === 0 ? 600 : i < 4 ? 180 : 220;
+      spans.push(span);
     });
+
+    if (reducedMotion) {
+      spans.forEach(function (s) { s.style.opacity = '1'; });
+      return;
+    }
+
+    function runAnimation() {
+      var delay = 400;
+      spans.forEach(function (span, i) {
+        var thisDelay = delay;
+        setTimeout(function () {
+          span.style.animation = 'fadeIn 0.25s ease both';
+          span.style.opacity = '1';
+        }, thisDelay);
+        delay += i === 0 ? 600 : i < 4 ? 180 : 220;
+      });
+    }
+
+    if ('IntersectionObserver' in window) {
+      var terminal = document.getElementById('terminal-demo');
+      var observer = new IntersectionObserver(function (entries) {
+        if (entries[0].isIntersecting) {
+          observer.disconnect();
+          runAnimation();
+        }
+      }, { threshold: 0.3 });
+      observer.observe(terminal);
+    } else {
+      runAnimation();
+    }
   })();
 
   /* ── copy to clipboard ── */
   function copyInstall() {
-    const cmd = document.getElementById('install-cmd').textContent;
-    const btn = document.getElementById('copy-btn');
-    navigator.clipboard.writeText(cmd).then(() => {
+    var cmd = document.getElementById('install-cmd').textContent;
+    var btn = document.getElementById('copy-btn');
+
+    function onSuccess() {
       btn.textContent = 'copied!';
       btn.classList.add('copied');
-      setTimeout(() => {
+      setTimeout(function () {
         btn.textContent = 'copy';
         btn.classList.remove('copied');
       }, 2000);
-    });
+    }
+
+    function fallbackCopy() {
+      var textarea = document.createElement('textarea');
+      textarea.value = cmd;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        onSuccess();
+      } catch (e) {
+        btn.textContent = 'failed';
+        setTimeout(function () { btn.textContent = 'copy'; }, 2000);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(cmd).then(onSuccess).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
   }
+
+  /* ── attach copy handler ─── */
+  document.getElementById('copy-btn').addEventListener('click', copyInstall);
 </script>
 </body>
 </html>
