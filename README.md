@@ -1,14 +1,8 @@
+<p align="center">
+  <img src="website/logo.svg" alt="git-scoper logo" width="128" />
+</p>
 
-```
-          _ _
-   __ _  (_) |_           ___   ___  ___  _ __   ___  _ __
-  / _` | | | __|  _____  / __| / __|/ _ \| '_ \ / _ \| '__|
- | (_| | | | |_  |_____| \__ \| (__| (_) | |_) |  __/| |
-  \__, | |_|\__|         |___/ \___|\___/| .__/ \___||_|
-  |___/                                  |_|
-```
-
-# 🔭 git-scoper
+<h1 align="center">git-scoper</h1>
 
 > 🎯 Automatically apply git `user.name` and `user.email` to every repository in a directory — so you never commit with the wrong identity again.
 
