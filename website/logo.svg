@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <style>
+      .scope-ring { fill: none; stroke: #39ff14; stroke-width: 8; }
+      .scope-ring-outer { fill: none; stroke: #39ff14; stroke-width: 4; opacity: 0.4; }
+      .crosshair { stroke: #39ff14; stroke-width: 6; stroke-linecap: square; }
+      .crosshair-tick { stroke: #39ff14; stroke-width: 4; stroke-linecap: square; }
+      .git-dot { fill: #39ff14; }
+      .git-branch { fill: none; stroke: #39ff14; stroke-width: 6; stroke-linecap: round; }
+    </style>
+  </defs>
+
+  <!-- Outer scope ring (subtle) -->
+  <circle class="scope-ring-outer" cx="256" cy="256" r="220" />
+
+  <!-- Main scope ring -->
+  <circle class="scope-ring" cx="256" cy="256" r="160" />
+
+  <!-- Crosshair lines — with gaps for the center -->
+  <!-- Top -->
+  <line class="crosshair" x1="256" y1="36" x2="256" y2="176" />
+  <!-- Bottom -->
+  <line class="crosshair" x1="256" y1="336" x2="256" y2="476" />
+  <!-- Left -->
+  <line class="crosshair" x1="36" y1="256" x2="176" y2="256" />
+  <!-- Right -->
+  <line class="crosshair" x1="336" y1="256" x2="476" y2="256" />
+
+  <!-- Small tick marks on the ring (cardinal directions) -->
+  <!-- Top tick -->
+  <line class="crosshair-tick" x1="256" y1="88" x2="256" y2="72" />
+  <!-- Bottom tick -->
+  <line class="crosshair-tick" x1="256" y1="440" x2="256" y2="424" />
+  <!-- Left tick -->
+  <line class="crosshair-tick" x1="88" y1="256" x2="72" y2="256" />
+  <!-- Right tick -->
+  <line class="crosshair-tick" x1="440" y1="256" x2="424" y2="256" />
+
+  <!-- Diagonal tick marks on the ring -->
+  <line class="crosshair-tick" x1="143" y1="143" x2="153" y2="153" />
+  <line class="crosshair-tick" x1="369" y1="143" x2="359" y2="153" />
+  <line class="crosshair-tick" x1="143" y1="369" x2="153" y2="359" />
+  <line class="crosshair-tick" x1="369" y1="369" x2="359" y2="359" />
+
+  <!-- Git branch icon in the center of the crosshair -->
+  <!-- Main branch line (vertical) -->
+  <line class="git-branch" x1="256" y1="216" x2="256" y2="312" />
+
+  <!-- Branch fork line -->
+  <path class="git-branch" d="M 288 240 Q 288 264 256 264" />
+
+  <!-- Git commit dots -->
+  <circle class="git-dot" cx="256" cy="216" r="10" />
+  <circle class="git-dot" cx="256" cy="312" r="10" />
+  <circle class="git-dot" cx="288" cy="232" r="8" />
+</svg>
