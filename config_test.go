@@ -264,6 +264,35 @@ func TestParseGitconfig_quotedValueEscapeSequences(t *testing.T) {
 	}
 }
 
+func TestParseKeyValue_caseInsensitiveKeys(t *testing.T) {
+	path := writeTempFile(t, "Name=Jane Doe\nEMAIL=jane@co.com\n")
+	cfg, err := parseKeyValue(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane Doe" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane Doe")
+	}
+	if cfg.Email != "jane@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "jane@co.com")
+	}
+}
+
+func TestParseGitconfig_caseInsensitiveKeys(t *testing.T) {
+	content := "[user]\n\tName = Jane Doe\n\tEMAIL = jane@co.com\n"
+	path := writeTempFile(t, content)
+	cfg, err := parseGitconfig(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Name != "Jane Doe" {
+		t.Errorf("Name: got %q, want %q", cfg.Name, "Jane Doe")
+	}
+	if cfg.Email != "jane@co.com" {
+		t.Errorf("Email: got %q, want %q", cfg.Email, "jane@co.com")
+	}
+}
+
 func TestParseGitconfig_subsectionIgnored(t *testing.T) {
 	// [user "work"] subsection must not be read; only plain [user] applies
 	content := "[user \"work\"]\n\tname = Work User\n\temail = work@co.com\n[user]\n\tname = Main User\n\temail = main@co.com\n"

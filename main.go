@@ -8,10 +8,28 @@ import (
 	"sort"
 )
 
+// version is set at build time via -ldflags "-X main.version=..."
+var version = "dev"
+
+type status int
+
+const (
+	statusUpdated status = iota
+	statusFailed
+	statusSkipped
+)
+
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
+	dryRun := flag.Bool("dry-run", false, "show what would be changed without applying")
 	depth := flag.Int("depth", 2, "max directory depth to scan")
 	workers := flag.Int("workers", 4, "parallel workers")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("git-scoper %s\n", version)
+		os.Exit(0)
+	}
 
 	if *depth < 1 {
 		fmt.Fprintf(os.Stderr, "Error: --depth must be at least 1\n")
@@ -47,9 +65,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Config: name=%s, email=%s\n", cfg.Name, cfg.Email)
-	fmt.Printf("Scanning: %s (depth %d)\n", baseDir, *depth)
-	fmt.Println("------------------------")
+	if *dryRun {
+		fmt.Printf("Config: name=%s, email=%s\n", cfg.Name, cfg.Email)
+		fmt.Printf("Scanning: %s (depth %d) [dry-run]\n", baseDir, *depth)
+		fmt.Println("------------------------")
+	} else {
+		fmt.Printf("Config: name=%s, email=%s\n", cfg.Name, cfg.Email)
+		fmt.Printf("Scanning: %s (depth %d)\n", baseDir, *depth)
+		fmt.Println("------------------------")
+	}
 
 	repos, skipped, err := scanDirs(baseDir, *depth)
 	if err != nil {
@@ -57,10 +81,50 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *dryRun {
+		type entry struct {
+			label  status
+			path   string
+		}
+		var entries []entry
+		for _, r := range repos {
+			rel, relErr := filepath.Rel(baseDir, r)
+			if relErr != nil {
+				rel = r
+			}
+			entries = append(entries, entry{statusUpdated, rel})
+		}
+		for _, s := range skipped {
+			rel, relErr := filepath.Rel(baseDir, s)
+			if relErr != nil {
+				rel = s
+			}
+			entries = append(entries, entry{statusSkipped, rel})
+		}
+
+		sort.Slice(entries, func(i, j int) bool { return entries[i].path < entries[j].path })
+
+		updated, skippedCount := 0, 0
+		for _, e := range entries {
+			switch e.label {
+			case statusUpdated:
+				fmt.Printf("Would update: %s\n", e.path)
+				updated++
+			case statusSkipped:
+				fmt.Printf("Skipped: %s\n", e.path)
+				skippedCount++
+			}
+		}
+
+		fmt.Println("------------------------")
+		fmt.Printf("Dry run complete. %d would be updated, %d skipped.\n", updated, skippedCount)
+		return
+	}
+
 	results := runAll(repos, cfg, *workers)
 
 	type entry struct {
-		label string
+		label status
 		path  string
 		err   error
 	}
@@ -71,9 +135,9 @@ func main() {
 			rel = r.Path
 		}
 		if r.Err != nil {
-			entries = append(entries, entry{"Failed", rel, r.Err})
+			entries = append(entries, entry{statusFailed, rel, r.Err})
 		} else {
-			entries = append(entries, entry{"Updated", rel, nil})
+			entries = append(entries, entry{statusUpdated, rel, nil})
 		}
 	}
 	for _, s := range skipped {
@@ -81,7 +145,7 @@ func main() {
 		if relErr != nil {
 			rel = s
 		}
-		entries = append(entries, entry{"Skipped", rel, nil})
+		entries = append(entries, entry{statusSkipped, rel, nil})
 	}
 
 	sort.Slice(entries, func(i, j int) bool { return entries[i].path < entries[j].path })
@@ -89,13 +153,13 @@ func main() {
 	updated, failed, skippedCount := 0, 0, 0
 	for _, e := range entries {
 		switch e.label {
-		case "Updated":
+		case statusUpdated:
 			fmt.Printf("Updated: %s\n", e.path)
 			updated++
-		case "Failed":
+		case statusFailed:
 			fmt.Printf("Failed: %s (%v)\n", e.path, e.err)
 			failed++
-		case "Skipped":
+		case statusSkipped:
 			fmt.Printf("Skipped: %s\n", e.path)
 			skippedCount++
 		}

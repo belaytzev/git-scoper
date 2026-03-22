@@ -23,6 +23,8 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 	directChildHasRepo := map[string]bool{}
 	// Track direct children that could not be read — they are silently ignored, not "Skipped"
 	unreadableDirs := map[string]bool{}
+	// Track all repo paths found in the first pass to avoid redundant stat calls
+	repoSet := map[string]bool{}
 
 	// First pass: collect all repos
 	err = filepath.WalkDir(baseClean, func(path string, d fs.DirEntry, walkErr error) error {
@@ -49,6 +51,7 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 
 		if isRepo {
 			repos = append(repos, path)
+			repoSet[path] = true
 			// Mark the direct child ancestor as having a repo
 			topSegment := strings.SplitN(rel, string(os.PathSeparator), 2)[0]
 			directChildHasRepo[filepath.Join(baseClean, topSegment)] = true
@@ -76,13 +79,8 @@ func scanDirs(baseDir string, maxDepth int) (repos []string, skipped []string, e
 			continue
 		}
 		childPath := filepath.Join(baseClean, e.Name())
-		if directChildHasRepo[childPath] || unreadableDirs[childPath] {
+		if directChildHasRepo[childPath] || unreadableDirs[childPath] || repoSet[childPath] {
 			continue
-		}
-		// Check if it's itself a repo (already in repos list)
-		_, statErr := os.Stat(filepath.Join(childPath, ".git"))
-		if statErr == nil {
-			continue // it's a repo, not skipped
 		}
 		skipped = append(skipped, childPath)
 	}

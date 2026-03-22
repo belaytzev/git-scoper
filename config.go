@@ -24,7 +24,7 @@ func parseKeyValue(path string) (*Config, error) {
 		if !ok {
 			continue
 		}
-		switch strings.TrimSpace(k) {
+		switch strings.ToLower(strings.TrimSpace(k)) {
 		case "name":
 			cfg.Name = strings.TrimSpace(stripInlineComment(v))
 		case "email":
@@ -153,7 +153,7 @@ func parseGitconfig(path string) (*Config, error) {
 		if !ok {
 			continue
 		}
-		switch strings.TrimSpace(k) {
+		switch strings.ToLower(strings.TrimSpace(k)) {
 		case "name":
 			cfg.Name = unquoteGitValue(v)
 		case "email":
