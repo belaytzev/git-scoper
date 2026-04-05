@@ -279,18 +279,53 @@
       margin-bottom: 1rem;
     }
 
+    /* ─── install tabs ─── */
+    .install-tabs {
+      display: flex;
+      gap: 0;
+      margin-top: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .install-tab {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      position: relative;
+      bottom: -1px;
+    }
+    .install-tab:hover {
+      color: var(--white);
+    }
+    .install-tab.active {
+      color: var(--green);
+      border-color: var(--border-hi);
+      border-bottom-color: var(--bg);
+      background: var(--bg);
+    }
+
     /* ─── install block ─── */
     .install-block {
       background: var(--surface);
       border: 1px solid var(--border);
-      display: flex;
+      border-top: none;
+      display: none;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
       padding: 1rem 1.2rem;
-      margin-top: 1.5rem;
       flex-wrap: wrap;
       transition: border-color 0.15s;
+    }
+    .install-block.active {
+      display: flex;
     }
     .install-block:hover {
       border-color: var(--border-hi);
@@ -572,10 +607,18 @@
   <div class="wrap">
     <p class="section-label">01 — Install</p>
     <h2>Get started in seconds</h2>
-    <p>Requires Go 1.21+ and <code class="hl-code">git</code> on your <code class="hl-code">PATH</code>.</p>
-    <div class="install-block">
-      <span class="install-cmd" id="install-cmd">go install github.com/belaytzev/git-scoper@latest</span>
-      <button class="copy-btn" id="copy-btn" aria-label="Copy install command to clipboard">copy</button>
+    <p>Pick your preferred method — just <code class="hl-code">git</code> on your <code class="hl-code">PATH</code> is required.</p>
+    <div class="install-tabs">
+      <button class="install-tab active" data-target="install-brew">Homebrew</button>
+      <button class="install-tab" data-target="install-go">Go</button>
+    </div>
+    <div class="install-block active" id="install-brew">
+      <span class="install-cmd">brew tap belaytzev/tap && brew install git-scoper</span>
+      <button class="copy-btn" aria-label="Copy Homebrew install command to clipboard">copy</button>
+    </div>
+    <div class="install-block" id="install-go">
+      <span class="install-cmd">go install github.com/belaytzev/git-scoper@latest</span>
+      <button class="copy-btn" aria-label="Copy Go install command to clipboard">copy</button>
     </div>
   </div>
 </section>
@@ -759,10 +802,23 @@
     }
   })();
 
+  /* ── install tabs ── */
+  var tabs = document.querySelectorAll('.install-tab');
+  var panels = document.querySelectorAll('.install-block');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      panels.forEach(function (p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.getAttribute('data-target')).classList.add('active');
+    });
+  });
+
   /* ── copy to clipboard ── */
-  function copyInstall() {
-    var cmd = document.getElementById('install-cmd').textContent;
-    var btn = document.getElementById('copy-btn');
+  function copyInstall(e) {
+    var block = e.target.closest('.install-block');
+    var cmd = block.querySelector('.install-cmd').textContent;
+    var btn = e.target;
 
     function onSuccess() {
       btn.textContent = 'copied!';
@@ -797,8 +853,10 @@
     }
   }
 
-  /* ── attach copy handler ─── */
-  document.getElementById('copy-btn').addEventListener('click', copyInstall);
+  /* ── attach copy handlers ─── */
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', copyInstall);
+  });
 </script>
 </body>
 </html>
