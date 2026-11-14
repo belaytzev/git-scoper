@@ -206,7 +206,7 @@ Please make sure your code passes CI checks before submitting.
 
 ## 📄 License
 
-MIT &copy; [Alexey Belaytzev](https://github.com/belaytzev)
+MIT &copy; [Aleksei Beliaitsev](https://github.com/belaytzev)
 
 See [LICENSE](LICENSE) for details.
 
